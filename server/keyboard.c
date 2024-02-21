@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
     sem_post(LOGsem);
 
 
-// the pipes
+    // the pipes
     int keyboard_server[2], server_keyboard[2];
     sscanf(argv[1], "%d %d|%d %d",  &keyboard_server[0], &keyboard_server[1], &server_keyboard[0], &server_keyboard[1]);
     close(keyboard_server[0]); 
@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
 
  
     // Set non-blocking input
-nodelay(stdscr, TRUE);
+    nodelay(stdscr, TRUE);
     
     while (1)
     {

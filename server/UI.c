@@ -9,16 +9,17 @@
 #include "include/constants.h"
 #include <stdbool.h>
 #include <time.h>
-bool game_over = false;
+
+// variables
 time_t start_time;
 struct data data;
 double time_needed;
 int Score;
-
 FILE* file;
 sem_t* LOGsem; 
 char msg[100];
 
+// a function to log
 void logit(char *msg){
       sem_wait(LOGsem);
 
@@ -37,11 +38,12 @@ void logit(char *msg){
 }
 
 
-
+// a funcitno to set the timer 
 void start_timer() {
     time(&start_time);
 }
 
+// a funtion to get the elapsed time since the last start timer function call
 double get_elapsed_time() {
     time_t end_time;
     time(&end_time);
@@ -50,6 +52,7 @@ double get_elapsed_time() {
 
 
 int main(int argc, char const *argv[]) {
+   
     // Initialize ncurses
     initscr();
     cbreak();  // Line buffering disabled
@@ -93,7 +96,7 @@ int main(int argc, char const *argv[]) {
         } while (data.obstacles[0]==0);
 
         // calculating the score  
-        Score = ( 5 * NUM_TARGETS + (2 * NUM_OBSTACLES) + (3 * data.targetReached) - (data.Cobs_touching  * 2) - (get_elapsed_time() * 1.5));
+        Score = ( 5 * data.targetnum + (2 * data.obsnum) + (3 * data.targetReached) - (data.Cobs_touching  * 2) - (get_elapsed_time() * 1.5));
 
         // Clear the screen
         clear();
@@ -105,30 +108,27 @@ int main(int argc, char const *argv[]) {
             // Screen has been resized, update dimensions and send to the server
             data.max[1] = newHeight;
             data.max[0] = newWidth;
-            write(UI_server[1], &data, sizeof(data));
         }
         // Draw the bordered box
         box(stdscr, 0, 0);
 
         // checking if the user have won
         bool all_targets_hit = true;
-        for (int i = 0; i < NUM_TARGETS * 2; ++i) {
+        for (int i = 0; i < data.targetnum  * 2; ++i) {
             if (data.targets[i] != -1) {
                 all_targets_hit = false;
                 break;
             }
         }
-        if (all_targets_hit) {
-            // All targets hit, print GAME OVER and score
-            if (!game_over)
-            {
+            if (all_targets_hit && data.targetnum>0) {
+
                 time_needed = get_elapsed_time();
-            }
-                        Score = ( 5 * NUM_TARGETS + (2 * NUM_OBSTACLES) + (3 * data.targetReached) - (data.Cobs_touching * 2) - (time_needed * 0.15));
-                       mvprintw(data.max[0] / 2, data.max[1] / 2 - 8, "GAME OVER, SCORE: %d", Score);
-            refresh();
-            game_over = true;
-        } else {
+                Score = (5 * data.targetnum + (2 * data.obsnum) + (3 * data.targetReached) - (data.Cobs_touching * 2) - (time_needed * 0.15));
+                mvprintw(data.max[0] / 2, data.max[1] / 2 - 8, "GAME OVER, SCORE: %d", Score);
+                refresh();
+                
+                start_timer();
+            } else {
 
             // Draw the item at its current position
             mvprintw((int)data.drone_pos[1], (int)data.drone_pos[0], "+");
@@ -144,22 +144,22 @@ int main(int argc, char const *argv[]) {
 
 
             // Print targets
-            for (int i = 0; i < NUM_TARGETS * 2; i += 2) {
+            for (int i = 0; i < data.targetnum * 2; i += 2) {
                 int x = (int)data.targets[i];
                 int y = (int)data.targets[i+1];
             
-                mvprintw(y, x, "%d", i / 2);
+                mvprintw(y,x, "%d", i / 2);
 
                 sprintf(msg, "[UI]: TARGET x[%d]: %d, y[%d]: %d", i/2, x, i/2, y);
                 logit(msg);
             }
 
             // print obstacles
-            for (int i = 0; i < NUM_OBSTACLES * 2; i += 2) {
+            for (int i = 0; i < data.obsnum * 2; i += 2) {
                 int x = (int)data.obstacles[i];
                 int y = (int)data.obstacles[i+1];
             
-                mvprintw(y, x, "X");
+                mvprintw(y,x, "X");
 
                 sprintf(msg, "[UI]: OBSTACLE x[%d]: %d, y[%d]: %d", i/2, x, i/2, y);
                 logit(msg);
@@ -167,6 +167,9 @@ int main(int argc, char const *argv[]) {
 
             // Refresh the screen
             refresh();
+            // write(UI_server[1], &data, sizeof(data));
+        // usleep(20000);
+
         }
     }
 

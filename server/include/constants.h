@@ -17,8 +17,8 @@
 
 #define SOCEKTMSGLEN 1024
 #define NUM_PROCESSES 5
-#define NUM_OBSTACLES 4
-#define NUM_TARGETS 4
+#define NUM_OBSTACLES 20
+#define NUM_TARGETS 20
 #define THRESH_TARGET 10
 #define THRESH_TOUCH 3
 #define THRESH_TOUCHOBS 1
@@ -33,6 +33,9 @@ struct data{
     double max[2];
     int Cobs_touching;
     int targetReached;
+    int obsnum;
+    int targetnum;
+    int exit_flag;
 };
 
 

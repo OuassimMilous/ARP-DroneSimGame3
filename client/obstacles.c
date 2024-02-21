@@ -13,9 +13,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h> 
+#include <errno.h>
+#include <sys/select.h>
+#include <time.h>
 
-
-
+//variables
 struct data data;
 int targetReached = 0;
 
@@ -25,19 +27,15 @@ FILE* file;
 sem_t* LOGsem; 
 char msg[100];
 int client_socket;
-// int server_socket;
 char buffer[SOCEKTMSGLEN];
 char bufferrec[SOCEKTMSGLEN];
-
 char reced [SOCEKTMSGLEN];
 
 
-
+// a function to write into the socket
 void writeSocket(char *msgs){
-    do{
         bzero(buffer, SOCEKTMSGLEN);
         strncpy(buffer, msgs, SOCEKTMSGLEN - 1);  
-        // write(client_socket, buffer, strlen(buffer));
         
         ssize_t bytes_written = write(client_socket, buffer, strlen(buffer));
         if (bytes_written <= 0) {
@@ -57,18 +55,17 @@ void writeSocket(char *msgs){
         sprintf(msg,"[Obstacle]: socket echo: %s", bufferrec);
         logit(msg);
 
-
         usleep(SOCKETWAIT);
-
-    } while (strncmp(buffer, bufferrec, SOCEKTMSGLEN - 1) != 0);
-    
+    // leave if the echo is wrong
+    if(strncmp(buffer, bufferrec, SOCEKTMSGLEN - 1)){
+        exit(1);
     }
+}
 
 
-
+// a funciton to read from the socket
 void readSocket() {
- do
- {
+
    // Read the message from the client
     bzero(buffer, SOCEKTMSGLEN);
     if (read(client_socket, buffer, sizeof(buffer) - 1) == -1) {
@@ -96,19 +93,21 @@ void readSocket() {
     logit(msg);
 
     usleep(SOCKETWAIT);
-} while (strncmp(buffer, bufferrec, SOCEKTMSGLEN - 1) != 0);
 
+    // leave if the echo is wrong
+    if(strncmp(buffer, bufferrec, SOCEKTMSGLEN - 1)){
+        exit(1);
+    }
 }
 
 
-
+// a function to create the obsticales
 void createObstecales(int num){
       char tmp[1000];
-
        // Create obstacles
         for (int i = 0; i < NUM_OBSTACLES * 2; i += 2) {
-            data.obstacles[i] = rand() % (int)data.max[0];
             data.obstacles[i + 1] = rand() % (int)data.max[1];
+             data.obstacles[i] = rand() % (int)data.max[0];
         }
 
 
@@ -127,7 +126,7 @@ void createObstecales(int num){
     writeSocket(msg);
 }
 
-
+// a function to save logs
 void logit(char *msg){
 
       sem_wait(LOGsem);
@@ -148,27 +147,20 @@ void logit(char *msg){
 
 int main(int argc, char *argv[])
 {
-      // Create or open a semaphore for logging
+      //open the semaphore for logging
     LOGsem = sem_open(LOGSEMPATH, O_RDWR, 0666); 
     if (LOGsem == SEM_FAILED) {
         perror("sem_open");
         exit(EXIT_FAILURE);
     }
 
-
-
     sprintf(msg,"[Obstacles]: ALIVE");
     logit(msg);
 
-  //  read(server_obstacles[0], &data, sizeof(data));
-    // sscanf(argv[0], "%d", &client_socket);
-    // sscanf(argv[0], "%d %s", &host,&port);
-    // sscanf(argv[1], "%d",&port);
     sscanf(argv[0], "%d", &port);
     strncpy(host, argv[1], sizeof(host) - 1);
 
     // Create socket
-    //client_socket;
     if ((client_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         perror("Socket creation failed");
         exit(EXIT_FAILURE);
@@ -186,55 +178,53 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-
+    // initialize
     writeSocket("OI");
 
+    // read dimentions
     readSocket();
     logit(reced);
-    // sscanf(reced, "%.3f,%.3f", &data.max[0], &data.max[1]);
     sscanf(reced, "%lf,%lf", &data.max[0], &data.max[1]);
-    sprintf(msg, "TEXTAT YAW  %.3f,%.3f ", &data.max[0], &data.max[1]);
- 
-    //  sprintf(msg, "TEXTAT YAW  %.3lf,%.3lf", data.max[0], data.max[1]);
-    //     logit(msg);
-
-    // sscanf(msg, "%.3f,%.3f", &data.max[0], &data.max[1]);
-  
-    // createObstecales(NUM_OBSTACLES);
-
-
-    while(1) {
-            //create targets
-          createObstecales(NUM_OBSTACLES);
-          sleep(6);
-
-        
-    }
+    // create the first obstacles
+    createObstecales(NUM_OBSTACLES);
     
-//     while(1) {
-//   // //  sprintf(dest_buffer, "%f.3", double_or_float_number);
-//   //     logit("[Obstacles]: sending");
-//   // writeSocket("obs");
-  
-//   //   usleep(50000);
+    int i = 0;
+    while(1) {
+    // wait for a while then change obstacles
+    if (i > 7 * 10 ) {
+        createObstecales(NUM_OBSTACLES);
+        i = 0;  // Reset the counter
+    } else {
+        usleep(1);
+        i++;
+    }
 
+    // recive the data from the socket in a non blocking way
+    fd_set read_fds;
+    FD_ZERO(&read_fds);
+    FD_SET(client_socket, &read_fds);
 
-//        // Create obstacles
-// //         for (int i = 0; i < NUM_OBSTACLES * 2; i += 2) {
-// //             do {
-// //                 data.obstacles[i] = rand() % (int)data.max[0];
-// //             } while (fabs(data.obstacles[i] - data.targets[i]) < THRESH_TARGET || fabs(data.obstacles[i] - data.drone_pos[0]) < THRESH_TARGET);
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 100000;  // Set timeout to 0.1 seconds (adjust as needed)
 
-// //             do {
-// //                 data.obstacles[i + 1] = rand() % (int)data.max[1];
-// //             } while (fabs(data.obstacles[i + 1] - data.targets[i + 1]) < THRESH_TARGET || fabs(data.obstacles[i + 1] - data.drone_pos[1]) < THRESH_TARGET);
+    int ready_fds = select(client_socket + 1, &read_fds, NULL, NULL, &timeout);
 
-// //             sprintf(msg, "[Obstacles]: x[%d]: %f, y[%d]: %f", i/2, data.obstacles[i], i/2, data.obstacles[i + 1]);
-// //             logit(msg);
-// //         }
-// //     //    write(obstacles_server[1], &data, sizeof(data));
-// //         sleep(10);
-// //    //     read(server_obstacles[0], &data, sizeof(data)); //update dronepos
-//     }
+    if (ready_fds == -1) {
+        perror("select");
+        exit(EXIT_FAILURE);
+    } else if (ready_fds == 0) {
+        // Timeout occurred, handle it if needed
+    } else {
+        // Perform read only if the socket is ready
+        if (FD_ISSET(client_socket, &read_fds)) {
+            readSocket();
+        }  
+    }
+        // exit
+        if (strcmp(reced, "stop") == 0) {
+            exit(0);
+        }
 
+    }
 }

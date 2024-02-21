@@ -30,11 +30,13 @@ void handle_watchdog_exit(int signum) {
     watchdog_running = 0;
 }
 
+//declare variables
 int port;
 FILE* file;
 sem_t* LOGsem, *sem; 
 char msg[100];
 
+//the  log fucntion
 void logit(char *msg){
       sem_wait(LOGsem);
 
@@ -54,14 +56,16 @@ void logit(char *msg){
 
 int main(int argc, char *argv[]) {
 
+    //checking for port ad host
    if (argc < 3) {
          fprintf(stderr,"ERROR, no host/port provided\n");
          exit(1);
      }
 
-
-
-
+    // parsing the port and host
+    char host[50];
+    strncpy(host, argv[1], sizeof(host) - 1);
+    int port = atoi(argv[2]);
 
     //declaration of variables
     pid_t watchdog, obstacles,targets;
@@ -69,7 +73,6 @@ int main(int argc, char *argv[]) {
     int num_children = 0;
     
     // the semaphore for the log file
-    
     LOGsem = sem_open(LOGSEMPATH, O_CREAT, 0666, 1); 
     if (LOGsem == SEM_FAILED)
     {
@@ -77,15 +80,6 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
     sem_init(LOGsem, 1, 1);
-
-
-   sem = sem_open(SEMPATH , O_CREAT, 0666, 1); 
-    if (sem == SEM_FAILED)
-    {
-        perror("sem_open");
-        exit(EXIT_FAILURE);
-    }
-    sem_init(sem, 1, 1);
 
 
     //cleanup the log file
@@ -106,71 +100,6 @@ int main(int argc, char *argv[]) {
 
     // Set up signal handler for child process exit
     signal(SIGCHLD, handle_watchdog_exit);
-
-
-
-
-
-
-
-    // int server_socket, client_socket;
-    // struct sockaddr_in server_addr, client_addr;
-    // socklen_t addr_size = sizeof(struct sockaddr_in);
-    // char buffer[255] = {0};
-
-    // // Create socket
-    // if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-    //     perror("Socket creation failed");
-    //     logit("socket creat fail");
-
-    //     exit(EXIT_FAILURE);
-    // }
-
-
-    // struct hostent *server;
-
-    // server = gethostbyname(argv[1]);
-    // if (server == NULL) {
-    //     fprintf(stderr, "ERROR, no such host\n");
-    //     logit("wrong host");
-    //     exit(1);
-    // }
-
-    // bzero((char *) &server_addr, sizeof(server_addr));
-    // server_addr.sin_family = AF_INET;
-    // bcopy((char *)server->h_addr,
-    //     (char *)&server_addr.sin_addr.s_addr,
-    //     server->h_length);
-    // server_addr.sin_port = htons(port);
-
-    // if (connect(server,(struct sockaddr *)&server_addr,sizeof(server_addr)) < 0) {
-    //     logit("ERROR connecting");
-    //     perror("ERROR connecting");
-    //     exit(1);
-    // }
-
-char host[50];
-    strncpy(host, argv[1], sizeof(host) - 1);
-    int port = atoi(argv[2]);
-
-    // // Create socket
-    // int client_socket;
-    // if ((client_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-    //     perror("Socket creation failed");
-    //     exit(EXIT_FAILURE);
-    // }
-
-    // struct sockaddr_in server_addr;
-    // bzero((char *)&server_addr, sizeof(server_addr));
-    // server_addr.sin_family = AF_INET;
-    // server_addr.sin_addr.s_addr = inet_addr(host);
-    // server_addr.sin_port = htons(port);
-
-    // // Connect to the server
-    // if (connect(client_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
-    //     perror("ERROR connecting");
-    //     exit(EXIT_FAILURE);
-    // }
     
     // Fork targets process    
     targets = fork();
@@ -189,7 +118,6 @@ char host[50];
     }
     num_children += 1;
     
-
     // Fork obstacles process
     obstacles = fork();
     if (obstacles < 0) {
@@ -206,7 +134,6 @@ char host[50];
     }
     num_children += 1;
     
-
     // Fork watchdog process
     watchdog = fork();
     if (watchdog < 0) {
@@ -251,7 +178,6 @@ char host[50];
     sem_unlink(LOGSEMPATH); 
     sem_close(LOGsem);
 
-    
     // Exit the main process
     return 0;
 }

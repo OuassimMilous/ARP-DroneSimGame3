@@ -8,20 +8,19 @@
 #include "include/constants.h"
 #include <math.h>
 
+
+//variables
 double forceX = 0.0, forceY = 0.0;
 double repfx = 0.0, repfy = 0.0;
-int exit_flag = 0;
-int targetReached = 0;
-
 struct data data;
 FILE *file;
 sem_t *LOGsem;
 char msg[100];
-    int drone_server[2], server_drone[2];
+int drone_server[2], server_drone[2];
 
+// a function to log the data
 void logit(char *msg) {
     sem_wait(LOGsem);
-
     file = fopen(LOGPATH, "a");
     // Check if the file was opened successfully
     if (file == NULL) {
@@ -38,27 +37,28 @@ void logit(char *msg) {
 
 //function to update targets
 void update_targets(){
-        // Check if drone reached any targets
-        for (int i = targetReached; i < NUM_TARGETS; i++) {
+// Check if drone reached any targets
+        for (int i = data.targetReached; i < NUM_TARGETS; i++) {
             if (data.targets[i * 2] != -1) {
-                targetReached = i;
+                data.targetReached = i;
                 break;
             }
         }
         // Check the distance between the drone and the target
-        double distance = sqrt(pow(data.drone_pos[0] - data.targets[targetReached * 2], 2) +
-                                pow(data.drone_pos[1] - data.targets[targetReached * 2 + 1], 2));
+        double distance = sqrt(pow(data.drone_pos[0] - data.targets[data.targetReached * 2], 2) +
+                                pow(data.drone_pos[1] - data.targets[data.targetReached * 2 + 1], 2));
 
         if (distance < THRESH_TOUCH) {
-            // Drone has reached the target, update the target status
-            data.targets[targetReached * 2] = -1;
-            data.targets[targetReached * 2 + 1] = -1;
-
-            data.targetReached = targetReached;
             // Log the information
-            sprintf(msg, "[Drone]: Drone reached target %d at (%f, %f)", targetReached, data.targets[targetReached * 2], data.targets[targetReached * 2 + 1]);
+            sprintf(msg, "[Drone]: Drone reached target %d at (%f, %f)", data.targetReached, data.targets[data.targetReached * 2], data.targets[data.targetReached * 2 + 1]);
             logit(msg);
+
+            // Drone has reached the target, update the target status
+            data.targets[data.targetReached * 2] = -1;
+            data.targets[data.targetReached * 2 + 1] = -1;
+
         }
+        
 }
 
 // a function to update the position according to Euler's formula
@@ -97,12 +97,12 @@ void calc_position(char key, double position[6]) {
             forceY = 0;
             break;
         case 27:
-            exit_flag = 1; // Set exit flag to true
+            data.exit_flag = 1; // Set exit flag to true
             break;
     }
         double sumx=0,sumy=0;
 
-  for (int i = 0; i < NUM_OBSTACLES; i++) {
+  for (int i = 0; i < data.obsnum; i++) {
      // Check the distance between the drone and the target
             double distance = sqrt(pow(data.drone_pos[0] - data.obstacles[i * 2], 2) +
                                    pow(data.drone_pos[1] - data.obstacles[i * 2 + 1], 2));
@@ -197,7 +197,7 @@ int main(int argc, char *argv[]) {
     close(drone_server[0]); // Close unnecessary pipes
     close(server_drone[1]);
 
-    while (exit_flag == 0) {
+    while (1) {
         read(server_drone[0], &data, sizeof(data));
         calc_position(data.key, data.drone_pos);
         update_targets();

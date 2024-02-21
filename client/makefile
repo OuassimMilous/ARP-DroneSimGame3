@@ -8,7 +8,7 @@ master:
 	gcc master.c -o build/master 
 	
 obstacles:
-	gcc obstacles.c -o build/obstacles 
+	gcc obstacles.c -o build/obstacles
 
 targets:
 	gcc targets.c -o build/targets -lm

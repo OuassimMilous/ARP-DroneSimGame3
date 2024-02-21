@@ -26,8 +26,6 @@ void update_status(){
 
 }
 
-
-
 int main(int argc, char const *argv[])
 {
 
