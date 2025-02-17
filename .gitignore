@@ -1,0 +1,4 @@
+client/build/*
+client/log/*
+server/build/*
+server/log/*
