@@ -25,7 +25,7 @@ char host[50];
 int port = 8080;
 FILE* file;
 sem_t* LOGsem; 
-char msg[100];
+char msg[SOCEKTMSGLEN];
 int client_socket;
 char buffer[SOCEKTMSGLEN];
 char bufferrec[SOCEKTMSGLEN];

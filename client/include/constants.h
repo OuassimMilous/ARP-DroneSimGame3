@@ -6,8 +6,8 @@
 #define LOGSEMPATH "/LOGsemcli"
 
 #define NUM_PROCESSES 3
-#define NUM_OBSTACLES 5
-#define NUM_TARGETS 5
+#define NUM_OBSTACLES 20
+#define NUM_TARGETS 20
 #define SOCEKTMSGLEN 1024
 #define SOCKETWAIT 100
 

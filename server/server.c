@@ -22,7 +22,7 @@ FILE *file;
 time_t start_time;  
 int centered =0;
 int port;
-char msg [100];
+char msg [SOCEKTMSGLEN];
 char reced[SOCEKTMSGLEN];
 char buffer[SOCEKTMSGLEN];
 char bufferrec[SOCEKTMSGLEN];

@@ -130,6 +130,3 @@
 
 ### ESC (Exit):
 - Exits the program.
-
-## REMARKS
-
